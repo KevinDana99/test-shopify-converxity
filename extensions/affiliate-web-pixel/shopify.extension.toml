@@ -1,0 +1,22 @@
+name = "affiliate-web-pixel"
+type = "web_pixel_extension"
+uid = "20e5b377-a9df-81ca-0c81-87249e0f1566caa28abd"
+
+runtime_context = "strict"
+
+[customer_privacy]
+analytics = true
+marketing = false
+preferences = false
+sale_of_data = "disabled"
+
+[settings]
+type = "object"
+
+[settings.fields.conversionApiUrl]
+name = "Conversion API URL"
+description = "Absolute URL for the conversion ingestion endpoint"
+type = "single_line_text_field"
+validations =  [
+  { name = "min", value = "1" }
+]

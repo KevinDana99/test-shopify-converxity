@@ -1,0 +1,3 @@
+# Prompt de Web Pixel
+
+Implementar una extensión `Web Pixel` para la app de Shopify que capture la atribución inicial de un visitante hacia un afiliado y reporte conversiones al backend. El pixel debe escuchar `page_viewed` para leer el query param canónico `?ref=CODE`, persistir la atribución en `localStorage` bajo una regla `last touch` con ventana de 7 días, y escuchar `checkout_completed` para recuperar esa atribución y preparar el envío de la conversión. No crear afiliados desde este flujo, no usar ScriptTags legacy, no interrumpir la compra si el código no es válido, y dejar instrumentación inicial con `console.log` para verificar captura, persistencia y lectura de la atribución.

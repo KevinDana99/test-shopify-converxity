@@ -1,0 +1,7 @@
+name = "remix"
+roles = ["frontend", "backend"]
+webhooks_path = "/webhooks/app/uninstalled"
+
+[commands]
+predev = "bunx prisma generate"
+dev = "bunx prisma migrate deploy && bunx remix vite:dev --host 0.0.0.0"

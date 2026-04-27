@@ -1,0 +1,117 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
+// enough when changing adapters.
+// See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
+datasource db {
+  provider = "sqlite"
+  url      = "file:dev.sqlite"
+}
+
+enum AffiliateStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum BillingEventType {
+  COMMISSION_CREATED
+}
+
+enum BillingStatus {
+  PENDING
+  SETTLED
+  FAILED
+}
+
+model Session {
+  id                  String    @id
+  shop                String
+  state               String
+  isOnline            Boolean   @default(false)
+  scope               String?
+  expires             DateTime?
+  accessToken         String
+  userId              BigInt?
+  firstName           String?
+  lastName            String?
+  email               String?
+  accountOwner        Boolean   @default(false)
+  locale              String?
+  collaborator        Boolean?  @default(false)
+  emailVerified       Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}
+
+model Affiliate {
+  id                String          @id @default(cuid())
+  shop              String
+  code              String
+  displayName       String
+  email             String?
+  commissionRateBps Int             @default(1000)
+  status            AffiliateStatus @default(ACTIVE)
+  conversions       Conversion[]
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@unique([shop, code])
+  @@index([shop, status])
+}
+
+model Conversion {
+  id                    String       @id @default(cuid())
+  shop                  String
+  orderId               String
+  orderName             String?
+  affiliateId           String?
+  affiliateCode         String
+  affiliate             Affiliate?   @relation(fields: [affiliateId], references: [id], onDelete: SetNull)
+  eventName             String       @default("checkout_completed")
+  currencyCode          String
+  subtotalAmountCents   Int
+  commissionAmountCents Int
+  idempotencyKey        String
+  happenedAt            DateTime
+  sourceUrl             String?
+  customerId            String?
+  rawPayload            Json?
+  billingEvent          BillingEvent?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  @@unique([shop, orderId])
+  @@unique([shop, idempotencyKey])
+  @@index([shop, affiliateCode])
+  @@index([shop, createdAt])
+}
+
+model BillingEvent {
+  id           String           @id @default(cuid())
+  shop         String
+  conversionId String           @unique
+  conversion   Conversion       @relation(fields: [conversionId], references: [id], onDelete: Cascade)
+  eventType    BillingEventType @default(COMMISSION_CREATED)
+  amountCents  Int
+  currencyCode String
+  status       BillingStatus    @default(PENDING)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([shop, status])
+}
+
+model AppInstallationSettings {
+  id                       String   @id @default(cuid())
+  shop                     String   @unique
+  defaultCommissionRateBps Int      @default(1000)
+  allowedOrigins           String   @default("*")
+  requireKnownAffiliate    Boolean  @default(false)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+}

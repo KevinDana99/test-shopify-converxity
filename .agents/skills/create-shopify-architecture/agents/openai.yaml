@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Create shopify architecture'
+  short_description: 'implement a shopify architecture for this product request.'
+  default_prompt: 'Use $create-shopify-architecture to design a shopify architecture for this product request.'
