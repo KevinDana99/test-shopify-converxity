@@ -2,7 +2,7 @@
 
 client_id = "80490b12025436b29af88566aa289306"
 name = "converxity-app-affiliates"
-application_url = "https://shopify.dev/apps/default-app-home"
+application_url = "https://converxity-shopify-develop.fly.dev"
 embedded = true
 
 [build]
@@ -17,7 +17,7 @@ api_version = "2026-07"
 scopes = "write_pixels,read_customer_events,read_pixels,write_app_proxy"
 
 [auth]
-redirect_urls = [ "https://shopify.dev/apps/default-app-home/api/auth" ]
+redirect_urls = [ "https://converxity-shopify-develop.fly.dev/api/auth" ]
 
 [app_proxy]
 url = "/proxy/report-payment"
