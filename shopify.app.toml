@@ -17,8 +17,3 @@ scopes = "write_pixels,read_customer_events,read_pixels,write_app_proxy"
 
 [auth]
 redirect_urls = [ "https://converxity-shopify-develop.fly.dev/api/auth" ]
-
-[app_proxy]
-url = "/proxy/report-payment"
-prefix = "apps"
-subpath = "converxity-report"

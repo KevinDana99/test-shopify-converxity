@@ -120,8 +120,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function SettingsPage() {
   const { conversionApiUrl, settings, webPixel } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
+  const actionWebPixel = actionData?.ok ? actionData.webPixel : null;
   const currentConversionApiUrl =
-    actionData?.webPixel?.settings?.conversionApiUrl ??
+    actionWebPixel?.settings?.conversionApiUrl ??
     webPixel?.settings?.conversionApiUrl ??
     conversionApiUrl;
 

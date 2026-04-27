@@ -28,6 +28,9 @@ type ReportPaymentPayload = {
   shopDomain: string;
   sourceUrl: string;
   subtotalAmount: number;
+};
+
+type ReportPaymentRequestPayload = ReportPaymentPayload & {
   reportPaymentToken: string;
 };
 
@@ -126,7 +129,7 @@ async function handleReportPayment(
     return;
   }
 
-  const requestPayload = {
+  const requestPayload: ReportPaymentRequestPayload = {
     ...payload,
     reportPaymentToken: settings.reportPaymentToken,
   };

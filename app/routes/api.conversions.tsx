@@ -75,12 +75,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       request,
       result.allowedOrigins,
       {
+        createdAt: result.createdAt,
+        customerId: result.customerId,
         status: result.status,
         orderId: result.orderId,
-        customerId: result.customerId,
-        createdAt: result.createdAt,
+        queuedAt: result.queuedAt,
       },
-      { status: result.duplicate ? 200 : 201 },
+      { status: result.duplicate ? 200 : 202 },
     );
   } catch (error) {
     if (error instanceof Response) {

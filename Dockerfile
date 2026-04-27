@@ -22,6 +22,7 @@ COPY --from=build /app/app ./app
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/public ./public
 COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/scripts ./scripts
 COPY --from=build /app/shopify.app.toml ./shopify.app.toml
 COPY --from=build /app/shopify.web.toml ./shopify.web.toml
 COPY --from=build /app/env.d.ts ./env.d.ts
