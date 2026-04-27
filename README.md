@@ -203,7 +203,7 @@ curl -X POST http://localhost:3000/api/conversions \
 |Checkout → Pixel API | ✅ | POST /api/conversions |
 |Validación (CORS, token, Zod) | ✅ | report-payment.service |
 |Idempotencia | ✅ | Clave única en BD |
-|Redis / BullMQ queue | 🟡 | Worker código listo, Redis no configurado |
+|Redis / BullMQ queue | ✅ | Worker procesa jobs asincrónicamente |
 |PaymentAfiliateService | ✅ | Cálculo de comisión |
 |ConversionReporterService (Converxity) | ✅ | HTTP POST a API externa |
 |ConversionReporterService (Shopify) | ✅ | GraphQL usageRecordCreate |
