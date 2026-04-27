@@ -11,6 +11,7 @@ type WebPixelRecord = {
   id: string;
   settings: {
     conversionApiUrl?: string;
+    reportPaymentToken?: string;
   } | null;
 };
 
@@ -109,7 +110,7 @@ export async function getInstalledWebPixel(admin: AdminGraphqlClient) {
 
 export async function upsertWebPixel(
   admin: AdminGraphqlClient,
-  input: {conversionApiUrl: string},
+  input: {conversionApiUrl: string; reportPaymentToken: string},
 ) {
   console.log("[web-pixel] Upsert requested", input);
   const existingPixel = await getInstalledWebPixel(admin);
@@ -137,6 +138,7 @@ export async function upsertWebPixel(
           webPixel: {
             settings: {
               conversionApiUrl: input.conversionApiUrl,
+              reportPaymentToken: input.reportPaymentToken,
             },
           },
         },
@@ -197,6 +199,7 @@ export async function upsertWebPixel(
         webPixel: {
           settings: {
             conversionApiUrl: input.conversionApiUrl,
+            reportPaymentToken: input.reportPaymentToken,
           },
         },
       },

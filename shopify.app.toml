@@ -14,7 +14,12 @@ api_version = "2026-07"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_pixels,read_customer_events,read_pixels"
+scopes = "write_pixels,read_customer_events,read_pixels,write_app_proxy"
 
 [auth]
 redirect_urls = [ "https://shopify.dev/apps/default-app-home/api/auth" ]
+
+[app_proxy]
+url = "/proxy/report-payment"
+prefix = "apps"
+subpath = "converxity-report"

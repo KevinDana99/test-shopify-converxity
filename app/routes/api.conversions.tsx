@@ -1,8 +1,8 @@
-import { json, type ActionFunctionArgs } from "@remix-run/node";
+import { json, type ActionFunctionArgs, type LoaderFunctionArgs } from "@remix-run/node";
 
 import { buildCorsHeaders } from "../lib/cors.server";
-import { createConversion } from "../services/conversions/conversion.service.server";
-import { conversionPayloadSchema } from "../schemas/conversion.schema";
+import { reportPayment } from "../services/report-payment/report-payment.service.server";
+import { reportPaymentPayloadSchema } from "../schemas/conversion.schema";
 
 const FALLBACK_ALLOWED_ORIGINS = process.env.ALLOWED_PIXEL_ORIGINS ?? "*";
 
@@ -22,7 +22,7 @@ function responseWithCors(
   return response;
 }
 
-export const action = async ({ request }: ActionFunctionArgs) => {
+export const loader = async ({ request }: LoaderFunctionArgs) => {
   if (request.method === "OPTIONS") {
     return new Response(null, {
       status: 204,
@@ -30,25 +30,38 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     });
   }
 
+  return responseWithCors(
+    request,
+    FALLBACK_ALLOWED_ORIGINS,
+    {
+      error: "method_not_allowed",
+      message: "Use POST for this endpoint.",
+    },
+    { status: 405 },
+  );
+};
+
+export const action = async ({ request }: ActionFunctionArgs) => {
   if (request.method !== "POST") {
     return responseWithCors(
       request,
       FALLBACK_ALLOWED_ORIGINS,
-      { ok: false, error: "Method not allowed" },
+      { error: "method_not_allowed", message: "Use POST for this endpoint." },
       { status: 405 },
     );
   }
 
   const rawBody = await request.json().catch(() => null);
-  const payload = conversionPayloadSchema.safeParse(rawBody);
+
+  const payload = reportPaymentPayloadSchema.safeParse(rawBody);
 
   if (!payload.success) {
     return responseWithCors(
       request,
       FALLBACK_ALLOWED_ORIGINS,
       {
-        ok: false,
-        error: "Invalid payload",
+        error: "invalid_payload",
+        message: "La solicitud no cumple el contrato esperado.",
         issues: payload.error.flatten(),
       },
       { status: 400 },
@@ -56,25 +69,27 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   try {
-    const result = await createConversion(payload.data, request);
+    const result = await reportPayment(payload.data, request);
 
     return responseWithCors(
       request,
       result.allowedOrigins,
       {
-        ok: true,
-        conversionId: result.conversion.id,
-        duplicate: result.duplicate,
-        commissionAmountCents: result.conversion.commissionAmountCents,
+        status: result.status,
+        orderId: result.orderId,
+        customerId: result.customerId,
+        createdAt: result.createdAt,
       },
       { status: result.duplicate ? 200 : 201 },
     );
   } catch (error) {
     if (error instanceof Response) {
+      const errorText = await error.text();
+
       return responseWithCors(
         request,
         FALLBACK_ALLOWED_ORIGINS,
-        { ok: false, error: await error.text() },
+        JSON.parse(errorText),
         { status: error.status },
       );
     }
@@ -82,7 +97,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return responseWithCors(
       request,
       FALLBACK_ALLOWED_ORIGINS,
-      { ok: false, error: "Unexpected error" },
+      { error: "unexpected_error", message: "Unexpected error" },
       { status: 500 },
     );
   }

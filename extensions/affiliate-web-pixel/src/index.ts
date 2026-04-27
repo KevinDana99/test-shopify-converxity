@@ -18,6 +18,19 @@ type PixelBrowser = {
   };
 };
 
+type ReportPaymentPayload = {
+  affiliateCode: string;
+  currencyCode: string;
+  customerId: string | null;
+  happenedAt: string;
+  orderId: string;
+  orderName: string | null;
+  shopDomain: string;
+  sourceUrl: string;
+  subtotalAmount: number;
+  reportPaymentToken: string;
+};
+
 function normalizeAffiliateCode(value: string | null) {
   const normalized = value?.trim().toUpperCase();
 
@@ -95,6 +108,53 @@ async function persistAttribution(
   );
 }
 
+async function handleReportPayment(
+  payload: ReportPaymentPayload,
+  settings: {conversionApiUrl?: unknown; reportPaymentToken?: unknown},
+) {
+  if (typeof settings.conversionApiUrl !== "string" || !settings.conversionApiUrl) {
+    console.log(
+      "[affiliate-web-pixel] No conversionApiUrl configured; skipping backend report",
+    );
+    return;
+  }
+
+  if (typeof settings.reportPaymentToken !== "string" || !settings.reportPaymentToken) {
+    console.log(
+      "[affiliate-web-pixel] No reportPaymentToken configured; skipping backend report",
+    );
+    return;
+  }
+
+  const requestPayload = {
+    ...payload,
+    reportPaymentToken: settings.reportPaymentToken,
+  };
+
+  const response = await fetch(settings.conversionApiUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestPayload),
+    keepalive: true,
+  });
+
+  let responseBody: unknown = null;
+
+  try {
+    responseBody = await response.json();
+  } catch {
+    responseBody = null;
+  }
+
+  console.log("[affiliate-web-pixel] Conversion report response", {
+    body: responseBody,
+    ok: response.ok,
+    status: response.status,
+  });
+}
+
 register(({analytics, browser, init, settings}) => {
   analytics.subscribe("page_viewed", async (event) => {
     const pageUrl = event.context.document.location.href;
@@ -163,28 +223,8 @@ register(({analytics, browser, init, settings}) => {
     );
     console.log("[affiliate-web-pixel] Conversion payload ready", payload);
 
-    if (typeof settings.conversionApiUrl !== "string" || !settings.conversionApiUrl) {
-      console.log(
-        "[affiliate-web-pixel] No conversionApiUrl configured; skipping backend report",
-      );
-      return;
-    }
-
     try {
-      const response = await fetch(settings.conversionApiUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Shopify-Shop-Domain": init.data.shop.myshopifyDomain,
-        },
-        body: JSON.stringify(payload),
-        keepalive: true,
-      });
-
-      console.log("[affiliate-web-pixel] Conversion report response", {
-        ok: response.ok,
-        status: response.status,
-      });
+      await handleReportPayment(payload, settings);
     } catch (error) {
       console.log("[affiliate-web-pixel] Conversion report failed", error);
     }

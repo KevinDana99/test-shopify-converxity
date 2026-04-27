@@ -1,5 +1,7 @@
 const DEFAULT_ALLOWED_HEADERS = [
+  "Accept",
   "Content-Type",
+  "Origin",
   "X-Shopify-Shop-Domain",
 ].join(", ");
 
@@ -30,12 +32,15 @@ export function buildCorsHeaders(request: Request, allowedOrigins: string) {
 
   headers.set("Access-Control-Allow-Headers", DEFAULT_ALLOWED_HEADERS);
   headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  headers.set("Access-Control-Max-Age", "86400");
   headers.set("Vary", "Origin");
 
   if (origin && isOriginAllowed(origin, allowedOrigins)) {
     headers.set("Access-Control-Allow-Origin", origin);
   } else if (!origin && allowedOrigins.includes("*")) {
     headers.set("Access-Control-Allow-Origin", "*");
+  } else if (origin && allowedOrigins.includes("*")) {
+    headers.set("Access-Control-Allow-Origin", origin);
   }
 
   return headers;

@@ -1,0 +1,3 @@
+# Prompt de Report-Payment
+
+Implementar una función `reportPayment` dentro de la extensión `Web Pixel` que tome la atribución persistida del visitante y los datos del evento `checkout_completed`, estructure el payload según el contrato definido y envíe la request al backend en Remix mediante `fetch`. El endpoint receptor debe tratarse como una API pública controlada: validar el contrato con Zod, validar `shopDomain`, `Origin`, `X-Shopify-Shop-Domain` cuando exista e idempotencia usando la clave `shopDomain + orderId + affiliateCode`, y responder con el contrato semántico acordado para `created`, `duplicate`, `invalid_payload`, `forbidden` y `affiliate_required`. No usar `SHOPIFY_SESSION_TOKEN` ni App Bridge para este flujo.

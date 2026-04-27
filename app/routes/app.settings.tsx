@@ -1,11 +1,8 @@
 import { json, type ActionFunctionArgs, type LoaderFunctionArgs } from "@remix-run/node";
-import { Form, useActionData, useLoaderData } from "@remix-run/react";
+import { useLoaderData } from "@remix-run/react";
 import {
-  Banner,
   BlockStack,
-  Button,
   Card,
-  FormLayout,
   InlineStack,
   List,
   Page,
@@ -20,6 +17,7 @@ import {
   getInstalledWebPixel,
   upsertWebPixel,
 } from "../services/pixels/web-pixel.service.server";
+import { createReportPaymentToken } from "../services/report-payment/report-payment-token.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {
@@ -30,16 +28,41 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       update: {},
       create: { shop: session.shop },
     });
-    const webPixel = await getInstalledWebPixel(admin).catch((error) => {
+    let webPixel = await getInstalledWebPixel(admin).catch((error) => {
       console.error("[settings] Failed to query installed web pixel", error);
       return null;
     });
     const conversionApiUrl = process.env.SHOPIFY_APP_URL
       ? new URL("/api/conversions", process.env.SHOPIFY_APP_URL).toString()
       : "";
+    const reportPaymentToken = createReportPaymentToken(session.shop);
+
+    const shouldSyncPixel =
+      Boolean(webPixel) &&
+      Boolean(conversionApiUrl) &&
+      (
+        webPixel?.settings?.conversionApiUrl !== conversionApiUrl ||
+        webPixel?.settings?.reportPaymentToken !== reportPaymentToken
+      );
+
+    if (shouldSyncPixel) {
+      console.log("[settings] Syncing web pixel conversionApiUrl", {
+        current: webPixel?.settings?.conversionApiUrl,
+        next: conversionApiUrl,
+      });
+
+      webPixel = await upsertWebPixel(admin, {
+        conversionApiUrl,
+        reportPaymentToken,
+      }).catch((error) => {
+        console.error("[settings] Failed to auto-sync web pixel", error);
+        return webPixel;
+      });
+    }
 
     return {
       conversionApiUrl,
+      reportPaymentToken,
       settings,
       webPixel,
     };
@@ -52,9 +75,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export const action = async ({ request }: ActionFunctionArgs) => {
   try {
     console.log("[settings] Web pixel activation request received");
-    const { admin } = await authenticate.admin(request);
+    const { admin, session } = await authenticate.admin(request);
     const formData = await request.formData();
     const conversionApiUrl = String(formData.get("conversionApiUrl") || "").trim();
+    const reportPaymentToken = createReportPaymentToken(session.shop);
 
     if (!conversionApiUrl) {
       return json(
@@ -67,7 +91,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     console.log("[settings] Activating web pixel with URL", conversionApiUrl);
-    const webPixel = await upsertWebPixel(admin, { conversionApiUrl });
+    const webPixel = await upsertWebPixel(admin, {
+      conversionApiUrl,
+      reportPaymentToken,
+    });
 
     return json({
       ok: true,
@@ -89,11 +116,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
 export default function SettingsPage() {
   const { conversionApiUrl, settings, webPixel } = useLoaderData<typeof loader>();
-  const actionData = useActionData<typeof action>();
   const currentConversionApiUrl =
-    actionData?.webPixel?.settings?.conversionApiUrl ??
-    webPixel?.settings?.conversionApiUrl ??
-    conversionApiUrl;
+    webPixel?.settings?.conversionApiUrl ?? conversionApiUrl;
 
   return (
     <Page>
@@ -127,29 +151,14 @@ export default function SettingsPage() {
               </Text>
             </InlineStack>
 
-            {actionData?.ok ? (
-              <Banner tone="success">{actionData.message}</Banner>
-            ) : null}
-
-            {actionData?.ok === false ? (
-              <Banner tone="critical">{actionData.error}</Banner>
-            ) : null}
-
-            <Form method="post">
-              <FormLayout>
-                <TextField
-                  label="Conversion API URL"
-                  name="conversionApiUrl"
-                  autoComplete="off"
-                  value={currentConversionApiUrl}
-                  readOnly
-                  helpText="This URL will be stored in the Shopify app pixel settings and used by checkout_completed."
-                />
-                <Button submit variant="primary">
-                  {webPixel ? "Update web pixel" : "Activate web pixel"}
-                </Button>
-              </FormLayout>
-            </Form>
+            <TextField
+              label="Conversion API URL"
+              name="conversionApiUrl"
+              autoComplete="off"
+              value={currentConversionApiUrl}
+              readOnly
+              helpText="This external endpoint URL is synced automatically into the Shopify web pixel settings and used by checkout_completed."
+            />
           </BlockStack>
         </Card>
       </BlockStack>

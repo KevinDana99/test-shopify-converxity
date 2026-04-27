@@ -48,3 +48,35 @@ export function buildIdempotencyKey(payload: ConversionPayload) {
     ].join(":")
   );
 }
+
+export const reportPaymentPayloadSchema = z.object({
+  orderId: z.string().trim().min(1).max(128),
+  subtotalAmount: z.coerce.number().nonnegative(),
+  affiliateCode: z
+    .string()
+    .trim()
+    .min(2)
+    .max(64)
+    .transform((value) => value.toUpperCase()),
+  currencyCode: z
+    .string()
+    .trim()
+    .length(3)
+    .transform((value) => value.toUpperCase()),
+  customerId: optionalString,
+  happenedAt: z.coerce.date(),
+  orderName: optionalString.nullable().transform((value) => value ?? undefined),
+  shopDomain: z
+    .string()
+    .trim()
+    .transform(normalizeShopDomain)
+    .refine(isShopDomain, "Invalid shop domain"),
+  sourceUrl: z.string().url().optional(),
+  reportPaymentToken: z.string().trim().min(1).max(256),
+});
+
+export type ReportPaymentPayload = z.infer<typeof reportPaymentPayloadSchema>;
+
+export function buildReportPaymentIdempotencyKey(payload: ReportPaymentPayload) {
+  return [payload.shopDomain, payload.orderId, payload.affiliateCode].join(":");
+}
