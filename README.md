@@ -116,7 +116,7 @@ DATABASE_URL=file:./dev.sqlite
 # Seguridad Pixel API
 REPORT_PAYMENT_SECRET=
 
-# Redis (⚠️ Sin esto, el worker NO procesa jobs)
+# Redis (requerido para que el worker procese jobs)
 REDIS_URL=
 
 # Configuración
