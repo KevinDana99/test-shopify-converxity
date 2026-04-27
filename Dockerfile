@@ -8,6 +8,7 @@ RUN bun install --frozen-lockfile
 
 FROM deps AS build
 COPY . .
+RUN bunx prisma generate
 RUN bun run build
 
 FROM base AS runtime
@@ -15,6 +16,7 @@ ENV NODE_ENV=production
 ENV PORT=3000
 
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=build /app/build ./build
 COPY --from=build /app/app ./app
 COPY --from=build /app/prisma ./prisma
