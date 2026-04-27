@@ -1,11 +1,8 @@
-import { json, type ActionFunctionArgs, type LoaderFunctionArgs } from "@remix-run/node";
-import { Form, useActionData, useLoaderData } from "@remix-run/react";
+import { type LoaderFunctionArgs } from "@remix-run/node";
+import { useLoaderData } from "@remix-run/react";
 import {
-  Banner,
   BlockStack,
-  Button,
   Card,
-  FormLayout,
   InlineStack,
   List,
   Page,
@@ -40,16 +37,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       : "";
     const reportPaymentToken = createReportPaymentToken(session.shop);
 
-    const shouldSyncPixel =
-      Boolean(webPixel) &&
+    const shouldProvisionPixel =
       Boolean(conversionApiUrl) &&
       (
-        webPixel?.settings?.conversionApiUrl !== conversionApiUrl ||
-        webPixel?.settings?.reportPaymentToken !== reportPaymentToken
+        !webPixel ||
+        webPixel.settings?.conversionApiUrl !== conversionApiUrl ||
+        webPixel.settings?.reportPaymentToken !== reportPaymentToken
       );
 
-    if (shouldSyncPixel) {
-      console.log("[settings] Syncing web pixel conversionApiUrl", {
+    if (shouldProvisionPixel) {
+      console.log("[settings] Provisioning web pixel", {
         current: webPixel?.settings?.conversionApiUrl,
         next: conversionApiUrl,
       });
@@ -58,7 +55,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         conversionApiUrl,
         reportPaymentToken,
       }).catch((error) => {
-        console.error("[settings] Failed to auto-sync web pixel", error);
+        console.error("[settings] Failed to provision web pixel", error);
         return webPixel;
       });
     }
@@ -75,54 +72,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 };
 
-export const action = async ({ request }: ActionFunctionArgs) => {
-  try {
-    console.log("[settings] Web pixel activation request received");
-    const { admin, session } = await authenticate.admin(request);
-    const formData = await request.formData();
-    const conversionApiUrl = String(formData.get("conversionApiUrl") || "").trim();
-    const reportPaymentToken = createReportPaymentToken(session.shop);
-
-    if (!conversionApiUrl) {
-      return json(
-        {
-          ok: false,
-          error: "Conversion API URL is required.",
-        },
-        { status: 400 },
-      );
-    }
-
-    console.log("[settings] Activating web pixel with URL", conversionApiUrl);
-    const webPixel = await upsertWebPixel(admin, {
-      conversionApiUrl,
-      reportPaymentToken,
-    });
-
-    return json({
-      ok: true,
-      message: "Web pixel activated successfully.",
-      webPixel,
-    });
-  } catch (error) {
-    console.error("[settings] Action failed", error);
-    return json(
-      {
-        ok: false,
-        error:
-          error instanceof Error ? error.message : "Unable to activate web pixel.",
-      },
-      { status: 500 },
-    );
-  }
-};
-
 export default function SettingsPage() {
   const { conversionApiUrl, settings, webPixel } = useLoaderData<typeof loader>();
-  const actionData = useActionData<typeof action>();
-  const actionWebPixel = actionData?.ok ? actionData.webPixel : null;
   const currentConversionApiUrl =
-    actionWebPixel?.settings?.conversionApiUrl ??
     webPixel?.settings?.conversionApiUrl ??
     conversionApiUrl;
 
@@ -158,29 +110,14 @@ export default function SettingsPage() {
               </Text>
             </InlineStack>
 
-            {actionData?.ok ? (
-              <Banner tone="success">{actionData.message}</Banner>
-            ) : null}
-
-            {actionData?.ok === false ? (
-              <Banner tone="critical">{actionData.error}</Banner>
-            ) : null}
-
-            <Form method="post">
-              <FormLayout>
-                <TextField
-                  label="Conversion API URL"
-                  name="conversionApiUrl"
-                  autoComplete="off"
-                  value={currentConversionApiUrl}
-                  readOnly
-                  helpText="This external endpoint URL is synced automatically into the Shopify web pixel settings and used by checkout_completed."
-                />
-                <Button submit variant="primary">
-                  {webPixel ? "Update web pixel" : "Activate web pixel"}
-                </Button>
-              </FormLayout>
-            </Form>
+            <TextField
+              label="Conversion API URL"
+              name="conversionApiUrl"
+              autoComplete="off"
+              value={currentConversionApiUrl}
+              readOnly
+              helpText="This external endpoint URL is synced automatically into the Shopify web pixel settings and used by checkout_completed."
+            />
           </BlockStack>
         </Card>
       </BlockStack>

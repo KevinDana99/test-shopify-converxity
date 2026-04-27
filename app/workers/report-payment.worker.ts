@@ -4,18 +4,22 @@ import {
 } from "../services/report-payment/report-payment-queue.server";
 import { reportConversionResult } from "../services/report-payment/conversion-report.service.server";
 import { processPaymentAffiliate } from "../services/report-payment/payment-affiliate.service.server";
-import { buildReportPaymentIdempotencyKey } from "../schemas/conversion.schema";
+import {
+  buildReportPaymentIdempotencyKey,
+  reportPaymentPayloadSchema,
+} from "../schemas/conversion.schema";
 
 const worker = createReportPaymentWorker(async (job) => {
-  const idempotencyKey = buildReportPaymentIdempotencyKey(job.data);
+  const payload = reportPaymentPayloadSchema.parse(job.data);
+  const idempotencyKey = buildReportPaymentIdempotencyKey(payload);
 
   await markReportPaymentJobState(idempotencyKey, "processing", {
     attemptsMade: job.attemptsMade,
   });
 
   try {
-    const paymentResult = await processPaymentAffiliate(job.data);
-    const conversionResult = await reportConversionResult(job.data, paymentResult);
+    const paymentResult = await processPaymentAffiliate(payload);
+    const conversionResult = await reportConversionResult(payload, paymentResult);
 
     await markReportPaymentJobState(idempotencyKey, "completed", {
       attemptsMade: job.attemptsMade,
@@ -25,8 +29,8 @@ const worker = createReportPaymentWorker(async (job) => {
       duplicate: conversionResult.duplicate,
       idempotencyKey,
       jobId: job.id,
-      orderId: job.data.orderId,
-      shopDomain: job.data.shopDomain,
+      orderId: payload.orderId,
+      shopDomain: payload.shopDomain,
     });
   } catch (error) {
     await markReportPaymentJobState(idempotencyKey, "failed", {
@@ -38,8 +42,8 @@ const worker = createReportPaymentWorker(async (job) => {
       error: error instanceof Error ? error.message : error,
       idempotencyKey,
       jobId: job.id,
-      orderId: job.data.orderId,
-      shopDomain: job.data.shopDomain,
+      orderId: payload.orderId,
+      shopDomain: payload.shopDomain,
     });
 
     throw error;
