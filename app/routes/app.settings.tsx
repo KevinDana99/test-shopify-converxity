@@ -1,8 +1,11 @@
 import { json, type ActionFunctionArgs, type LoaderFunctionArgs } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
+import { Form, useActionData, useLoaderData } from "@remix-run/react";
 import {
+  Banner,
   BlockStack,
+  Button,
   Card,
+  FormLayout,
   InlineStack,
   List,
   Page,
@@ -116,8 +119,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
 export default function SettingsPage() {
   const { conversionApiUrl, settings, webPixel } = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>();
   const currentConversionApiUrl =
-    webPixel?.settings?.conversionApiUrl ?? conversionApiUrl;
+    actionData?.webPixel?.settings?.conversionApiUrl ??
+    webPixel?.settings?.conversionApiUrl ??
+    conversionApiUrl;
 
   return (
     <Page>
@@ -151,14 +157,29 @@ export default function SettingsPage() {
               </Text>
             </InlineStack>
 
-            <TextField
-              label="Conversion API URL"
-              name="conversionApiUrl"
-              autoComplete="off"
-              value={currentConversionApiUrl}
-              readOnly
-              helpText="This external endpoint URL is synced automatically into the Shopify web pixel settings and used by checkout_completed."
-            />
+            {actionData?.ok ? (
+              <Banner tone="success">{actionData.message}</Banner>
+            ) : null}
+
+            {actionData?.ok === false ? (
+              <Banner tone="critical">{actionData.error}</Banner>
+            ) : null}
+
+            <Form method="post">
+              <FormLayout>
+                <TextField
+                  label="Conversion API URL"
+                  name="conversionApiUrl"
+                  autoComplete="off"
+                  value={currentConversionApiUrl}
+                  readOnly
+                  helpText="This external endpoint URL is synced automatically into the Shopify web pixel settings and used by checkout_completed."
+                />
+                <Button submit variant="primary">
+                  {webPixel ? "Update web pixel" : "Activate web pixel"}
+                </Button>
+              </FormLayout>
+            </Form>
           </BlockStack>
         </Card>
       </BlockStack>
